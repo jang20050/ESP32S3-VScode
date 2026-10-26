@@ -1,0 +1,22 @@
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+
+# Wi-Fi 비밀번호가 들어 있는 파일 (wifi_config.example.h 를 복사해서 만든다)
+firmware/src/wifi_config.h
+
+# 빌드 결과물과 실행 중 생기는 파일
+firmware/.pio/
+__pycache__/
+*.pyc
+server/captures/
+*.pt
+
+# PlatformIO 가 처음 만든 빈 템플릿 프로젝트 (실습 코드는 firmware/ 에 있다)
+/platformio.ini
+/src/
+/include/
+/lib/
+/test/

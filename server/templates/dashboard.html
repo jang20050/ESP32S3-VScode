@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pipeline Dashboard</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-title">Pipeline</span>
+    <span class="brand-sub">XIAO ESP32S3 + YOLO</span>
+  </div>
+
+  <dl class="metrics">
+    <div class="metric">
+      <dt>FPS</dt>
+      <dd id="m-fps" class="num">-</dd>
+    </div>
+    <div class="metric">
+      <dt>수신 FPS</dt>
+      <dd id="m-stream-fps" class="num">-</dd>
+    </div>
+    <div class="metric" title="ESP32 에서 받은 뒤 결과 화면이 만들어질 때까지 걸린 시간">
+      <dt>프레임 지연</dt>
+      <dd id="m-delay" class="num">-</dd>
+    </div>
+    <div class="metric">
+      <dt>장치</dt>
+      <dd id="m-device">-</dd>
+    </div>
+    <div class="metric">
+      <dt>모델</dt>
+      <dd id="m-model">-</dd>
+    </div>
+    <div class="metric">
+      <dt>소스</dt>
+      <dd id="m-camera" class="camera" data-state="unknown"><span class="dot" aria-hidden="true"></span><span id="m-camera-text">-</span></dd>
+    </div>
+  </dl>
+
+  <form id="settings-form" class="controls" autocomplete="off">
+    <label class="control">
+      <span>skip</span>
+      <select id="set-skip" name="skip"></select>
+    </label>
+    <label class="control">
+      <span>imgsz</span>
+      <select id="set-imgsz" name="imgsz"></select>
+    </label>
+    <label class="control">
+      <span>conf</span>
+      <input id="set-conf" name="conf" type="number" min="0.01" max="0.99" step="0.01" inputmode="decimal">
+    </label>
+    <span id="settings-msg" class="settings-msg" role="status" aria-live="polite"></span>
+  </form>
+
+  <div id="conn" class="conn" data-state="connecting" role="status" aria-live="polite">연결 중</div>
+</header>
+
+<main class="layout">
+
+  <section class="pane video-pane" aria-labelledby="video-title">
+    <div class="pane-head">
+      <h2 id="video-title">영상</h2>
+      <div class="pane-tools">
+        <div class="segmented" role="group" aria-label="영상 종류">
+          <button type="button" class="btn" data-feed="detect" aria-pressed="true">탐지</button>
+          <button type="button" class="btn" data-feed="raw" aria-pressed="false">원본</button>
+        </div>
+        <button type="button" id="btn-capture" class="btn btn-accent">촬영</button>
+      </div>
+    </div>
+    <div class="feed-frame">
+      <img id="feed" src="/detect_feed" alt="탐지 결과 영상">
+    </div>
+    <p id="capture-msg" class="hint" role="status" aria-live="polite"></p>
+
+    <div class="pane-head sub-head">
+      <h3>최근 캡처</h3>
+      <span class="hint">노트북 server/captures 폴더에 저장</span>
+    </div>
+    <div id="thumbs" class="thumbs"></div>
+  </section>
+
+  <section class="pane flow-pane" aria-labelledby="flow-title">
+    <div class="pane-head">
+      <h2 id="flow-title">파이프라인</h2>
+      <span class="hint">단계를 누르면 설명이 열립니다</span>
+    </div>
+    <div class="flow-body">
+      <svg id="flow" class="flow" role="group" aria-label="처리 단계 플로우차트" viewBox="0 0 440 420"></svg>
+      <aside id="detail" class="detail" aria-live="polite">
+        <div class="detail-head">
+          <h3 id="detail-title">-</h3>
+          <code id="detail-func" class="detail-func"></code>
+        </div>
+        <dl class="detail-stats">
+          <div>
+            <dt>실행 시 평균</dt>
+            <dd id="detail-run-avg" class="num">-</dd>
+          </div>
+          <div>
+            <dt>프레임당 평균</dt>
+            <dd id="detail-avg" class="num">-</dd>
+          </div>
+          <div>
+            <dt>비중</dt>
+            <dd id="detail-share" class="num">-</dd>
+          </div>
+        </dl>
+        <p id="detail-error" class="detail-error" hidden></p>
+        <div id="detail-doc">
+          <p id="detail-summary" class="detail-summary"></p>
+          <dl class="detail-fields">
+            <dt>입력</dt>
+            <dd id="detail-input"></dd>
+            <dt>출력</dt>
+            <dd id="detail-output"></dd>
+            <dt>왜 필요한가</dt>
+            <dd id="detail-reason"></dd>
+          </dl>
+          <h4 class="detail-sub">매개변수</h4>
+          <dl id="detail-params" class="detail-params"></dl>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="pane log-pane" aria-labelledby="log-title">
+    <div class="pane-head">
+      <h2 id="log-title">로그</h2>
+      <div class="pane-tools">
+        <label class="check"><input type="checkbox" data-level="INFO" checked> INFO</label>
+        <label class="check"><input type="checkbox" data-level="DEBUG"> DEBUG</label>
+        <label class="check"><input type="checkbox" data-level="WARN" checked> WARN</label>
+        <button type="button" id="btn-pause" class="btn" aria-pressed="false">일시정지</button>
+        <button type="button" id="btn-clear" class="btn">지우기</button>
+        <span id="log-count" class="hint num">0줄</span>
+      </div>
+    </div>
+    <div id="log" class="log hide-DEBUG" role="log" aria-label="파이프라인 로그" tabindex="0"></div>
+  </section>
+
+</main>
+
+</body>
+</html>
